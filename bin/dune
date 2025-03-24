@@ -1,0 +1,4 @@
+(executable
+ (public_name letter_parser)
+ (name main)
+ (libraries letter_parser))
