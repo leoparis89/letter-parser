@@ -1,6 +1,10 @@
 type literal = String of string | Numeric of int
 type expression = Literal of literal | Other_expression
-type statement = Expression_Statement of expression | Other_statement
+
+type statement =
+  | Expression_Statement of expression
+  | Block_Statement of statement list
+
 type ast = Program of statement list
 
 type t = {
@@ -14,11 +18,16 @@ let make () = { _string = ""; lookahead = None; tokenizer = Tokenizer.make "" }
 let eat (token : Tokenizer.token) parser =
   match parser.lookahead with
   | Some production ->
-      if not (production.token = token) then failwith "Unexpected token"
+      if not (production.token = token) then
+        failwith
+          (Printf.sprintf
+             "Unexpected token type in lookahead. Found %s but expected %s"
+             (Tokenizer.show_token production.token)
+             (Tokenizer.show_token token))
       else parser.lookahead <- Tokenizer.get_next_token parser.tokenizer;
       production
   (* failwith "Unexpected token" *)
-  | None -> failwith "Unexpected end of input"
+  | None -> failwith "Empty parser"
 
 let numeric_literal parser =
   let token = parser |> eat Numeric in
@@ -35,7 +44,12 @@ let literal parser =
   | None -> failwith "Empty parser"
   | Some { token = String; _ } -> string_literal parser
   | Some { token = Numeric; _ } -> numeric_literal parser
-  | Some { token = Semicolon; _ } -> failwith "Unexpected token"
+  | Some { token; _ } ->
+      failwith
+        (Printf.sprintf
+           "Unexpected token type in lookahead. Found %s but expected String \
+            or Numeric"
+           (Tokenizer.show_token token))
 
 let expression parser = Literal (literal parser)
 
@@ -44,23 +58,40 @@ let expression_statement parser =
   let _ = parser |> eat Semicolon in
   Expression_Statement expression
 
-let statement parser = expression_statement parser
-
-let statement_list parser =
-  let rec loop acc =
-    if parser.lookahead = None then List.rev acc
-    else
-      let statement = statement parser in
-      loop (statement :: acc)
+let rec statement_list ~(stop_lookahead : Tokenizer.token option) parser =
+  let block_statement parser =
+    let _ = parser |> eat Curly_open in
+    let body =
+      match parser.lookahead with
+      | Some { token = Curly_close; _ } -> []
+      | Some _ -> statement_list ~stop_lookahead:(Some Curly_close) parser
+      | None -> failwith "Unexpected empty lookahead"
+    in
+    let _ = parser |> eat Curly_close in
+    Block_Statement body
   in
-  loop []
 
-let program parser =
+  let statement parser =
+    match parser.lookahead with
+    | Some { token = Curly_open; _ } -> block_statement parser
+    | Some { token = Numeric | String; _ } -> expression_statement parser
+    | Some { token; _ } ->
+        failwith
+          (Printf.sprintf
+             "Unexpected token type in lookahead while parsing statement. \
+              Found %s but expected Curly_open, Numeric, or String"
+             (Tokenizer.show_token token))
+    | None -> failwith "Unexpected empty lookahead"
+  in
+
   let rec loop acc =
-    if parser.lookahead = None then List.rev acc
-    else
-      let literal = literal parser in
-      loop (literal :: acc)
+    match (parser.lookahead, stop_lookahead) with
+    | None, _ -> List.rev acc
+    | Some { token; _ }, Some stop_lookahead when stop_lookahead = token ->
+        List.rev acc
+    | Some _lookahead, _ ->
+        let statement = statement parser in
+        loop (statement :: acc)
   in
   loop []
 
@@ -68,4 +99,4 @@ let parse program parser =
   parser._string <- program;
   Tokenizer.init parser._string parser.tokenizer;
   parser.lookahead <- Tokenizer.get_next_token parser.tokenizer;
-  Program (statement_list parser)
+  Program (parser |> statement_list ~stop_lookahead:None)

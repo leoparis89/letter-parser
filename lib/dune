@@ -1,3 +1,5 @@
 (library
  (name letter_parser)
+ (preprocess
+  (pps ppx_deriving.show))
  (libraries re))

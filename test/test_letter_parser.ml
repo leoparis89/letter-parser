@@ -50,6 +50,79 @@ let multiple_statements () =
   let expected = Program [ Expression_Statement (Literal (Numeric 88)) ] in
   assert (result = expected)
 
+let empty_block () =
+  let result = Parser.make () |> Parser.parse "{}" in
+  let expected = Program [ Block_Statement [] ] in
+  assert (result = expected)
+
+let block_with_statement () =
+  let result = Parser.make () |> Parser.parse "{1;}" in
+  let expected =
+    Program [ Block_Statement [ Expression_Statement (Literal (Numeric 1)) ] ]
+  in
+  assert (result = expected)
+
+let block_with_multiple_statements () =
+  let result =
+    Parser.make ()
+    |> Parser.parse
+         {|
+      /* test block with multiple statements
+      *  
+      */
+      {1;
+       // comment
+      "foo";
+      // comment
+      3;}
+    |}
+  in
+  let expected =
+    Program
+      [
+        Block_Statement
+          [
+            Expression_Statement (Literal (Numeric 1));
+            Expression_Statement (Literal (String "foo"));
+            Expression_Statement (Literal (Numeric 3));
+          ];
+      ]
+  in
+  assert (result = expected)
+
+let block_with_nested_block () =
+  let result =
+    Parser.make ()
+    |> Parser.parse
+         {|
+      {1;4;  {8; 9;}
+      // comment
+      "foo";}
+    |}
+  in
+  let expected =
+    Program
+      [
+        Block_Statement
+          [
+            Expression_Statement (Literal (Numeric 1));
+            (* Block_Statement
+              [
+                Expression_Statement (Literal (Numeric 2));
+                Expression_Statement (Literal (String "foo"));
+              ]; *)
+            Expression_Statement (Literal (Numeric 4));
+            Block_Statement
+              [
+                Expression_Statement (Literal (Numeric 8));
+                Expression_Statement (Literal (Numeric 9));
+              ];
+            Expression_Statement (Literal (String "foo"));
+          ];
+      ]
+  in
+  assert (result = expected)
+
 let unexpected_token () =
   try
     let _ = Parser.make () |> Parser.parse "foo" in
@@ -61,7 +134,7 @@ let unexpected_token () =
 (* Run it *)
 let () =
   let open Alcotest in
-  run "Utils"
+  run "Letter parser"
     [
       ( "string-case",
         [
@@ -71,5 +144,12 @@ let () =
           test_case "Test parser on comment" `Quick ignore_single_line_comment;
           test_case "Test parser on multi-line comment" `Quick
             ignore_multi_line_comment;
+          test_case "Test parser on empty block" `Quick empty_block;
+          test_case "Test parser on block with statement" `Quick
+            block_with_statement;
+          test_case "Test parser on block with multiple statements" `Quick
+            block_with_multiple_statements;
+          test_case "Test parser on block with nested block" `Quick
+            block_with_nested_block;
         ] );
     ]

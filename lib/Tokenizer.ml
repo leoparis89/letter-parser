@@ -17,13 +17,17 @@ module Regex = struct
     | None -> None
 end
 
-(* Example usage *)
+type token = Numeric | String | Semicolon | Curly_open | Curly_close
+[@@deriving show]
 
-type token = Numeric | String | Semicolon
 type spec = { pattern : string; token : token option }
 
 let specs =
   [
+    (* left curly brace *)
+    { pattern = "^\\{"; token = Some Curly_open };
+    (* right curly brace *)
+    { pattern = "^\\}"; token = Some Curly_close };
     (* skip single line comments *)
     { pattern = "^//.*"; token = None };
     (* skip multi line comments *)
