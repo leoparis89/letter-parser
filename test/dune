@@ -1,3 +1,5 @@
 (test
  (name test_letter_parser)
+ (flags
+  (:standard -w -32))
  (libraries letter_parser alcotest))
