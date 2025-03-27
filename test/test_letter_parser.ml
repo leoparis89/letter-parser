@@ -13,6 +13,13 @@ let parse_string () =
   let expected = Program [ Expression_Statement (Literal (String "hello")) ] in
   assert (result = expected)
 
+let parse_string_containing_curly_braces () =
+  let result = Parser.make () |> Parser.parse "\n\n  \"hello { }\"; " in
+  let expected =
+    Program [ Expression_Statement (Literal (String "hello { }")) ]
+  in
+  assert (result = expected)
+
 let ignore_single_line_comment () =
   let result =
     Parser.make ()
@@ -131,6 +138,31 @@ let unexpected_token () =
     Alcotest.(check string)
       "should fail with unexpected token" "Unexpected token: f" msg
 
+let binary_expression () =
+  let result = Parser.make () |> Parser.parse "1 + 2;" in
+  let expected =
+    Program
+      [
+        Expression_Statement
+          (Binary (Literal (Numeric 1), Plus, Literal (Numeric 2)));
+      ]
+  in
+  assert (result = expected)
+
+let binary_expression_with_multiple_operators () =
+  let result = Parser.make () |> Parser.parse "1 + 2 - 3;" in
+  let expected =
+    Program
+      [
+        Expression_Statement
+          (Binary
+             ( Binary (Literal (Numeric 1), Plus, Literal (Numeric 2)),
+               Minus,
+               Literal (Numeric 3) ));
+      ]
+  in
+  assert (result = expected)
+
 (* Run it *)
 let () =
   let open Alcotest in
@@ -151,5 +183,10 @@ let () =
             block_with_multiple_statements;
           test_case "Test parser on block with nested block" `Quick
             block_with_nested_block;
+          test_case "Test parser on string containing open curly brace" `Quick
+            parse_string_containing_curly_braces;
+          test_case "Test parser on binary expression" `Quick binary_expression;
+          test_case "Test parser on binary expression with multiple operators"
+            `Quick binary_expression_with_multiple_operators;
         ] );
     ]

@@ -17,21 +17,32 @@ module Regex = struct
     | None -> None
 end
 
-type token = Numeric | String | Semicolon | Curly_open | Curly_close
+type token =
+  | Numeric
+  | String
+  | Semicolon
+  | Curly_open
+  | Curly_close
+  | Plus
+  | Minus
 [@@deriving show]
 
 type spec = { pattern : string; token : token option }
 
 let specs =
   [
+    (* match plus *)
+    { pattern = "^\\+"; token = Some Plus };
+    (* match minus *)
+    { pattern = "^\\-"; token = Some Minus };
     (* left curly brace *)
     { pattern = "^\\{"; token = Some Curly_open };
     (* right curly brace *)
     { pattern = "^\\}"; token = Some Curly_close };
+    (* match multi line comments *)
+    { pattern = "^/\\*[\\s\\S]*?\\*/"; token = None };
     (* skip single line comments *)
     { pattern = "^//.*"; token = None };
-    (* skip multi line comments *)
-    { pattern = "^/\\*[\\s\\S]*?\\*/"; token = None };
     (* skip whitespace *)
     { pattern = "^\\s+"; token = None };
     (* match_semicolon *)

@@ -1,5 +1,13 @@
+type binary_operator = Plus | Minus
 type literal = String of string | Numeric of int
-type expression = Literal of literal | Other_expression
+
+type expression =
+  | Literal of literal
+  | Binary of expression * binary_operator * expression
+
+let get_numeric_literal = function
+  | Literal (Numeric literal) -> literal
+  | _ -> failwith "Not a literal"
 
 type statement =
   | Expression_Statement of expression
@@ -51,7 +59,31 @@ let literal parser =
             or Numeric"
            (Tokenizer.show_token token))
 
-let expression parser = Literal (literal parser)
+let token_to_operator : Tokenizer.token -> binary_operator option = function
+  | Plus -> Some Plus
+  | Minus -> Some Minus
+  | _ -> None
+
+let binary_expression parser =
+  let left = ref (Literal (literal parser)) in
+  while
+    match parser.lookahead with
+    | Some { token = Plus | Minus; _ } -> true
+    | _ -> false
+  do
+    match parser.lookahead with
+    | Some { token; _ } -> (
+        match token_to_operator token with
+        | Some operator ->
+            let _ = parser |> eat token in
+            let right = Literal (literal parser) in
+            left := Binary (!left, operator, right)
+        | None -> ())
+    | None -> ()
+  done;
+  !left
+
+let expression = binary_expression
 
 let expression_statement parser =
   let expression = expression parser in
