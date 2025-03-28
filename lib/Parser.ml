@@ -16,12 +16,11 @@ type statement =
 type ast = Program of statement list
 
 type t = {
-  mutable _string : string;
   mutable lookahead : Tokenizer.production option;
   tokenizer : Tokenizer.t;
 }
 
-let make () = { _string = ""; lookahead = None; tokenizer = Tokenizer.make "" }
+let make () = { lookahead = None; tokenizer = Tokenizer.make "" }
 
 let eat (token : Tokenizer.token) parser =
   match parser.lookahead with
@@ -148,7 +147,6 @@ let rec statement_list ~(stop_lookahead : Tokenizer.token option) parser =
   loop []
 
 let parse program parser =
-  parser._string <- program;
-  Tokenizer.init parser._string parser.tokenizer;
+  Tokenizer.init program parser.tokenizer;
   parser.lookahead <- Tokenizer.get_next_token parser.tokenizer;
   Program (parser |> statement_list ~stop_lookahead:None)
