@@ -193,6 +193,36 @@ let binary_expression_with_asterisk_and_plus () =
   in
   assert (result = expected)
 
+let parenthesis_expression () =
+  let result = Parser.make () |> Parser.parse "(1);" in
+  let expected = Program [ Expression_Statement (Literal (Numeric 1)) ] in
+  assert (result = expected)
+
+let parenthesis_expression_with_binary_expression () =
+  let result = Parser.make () |> Parser.parse "(1 + 2);" in
+  let expected =
+    Program
+      [
+        Expression_Statement
+          (Binary (Literal (Numeric 1), Plus, Literal (Numeric 2)));
+      ]
+  in
+  assert (result = expected)
+
+let parenthesis_expression_with_parenthesis_expression () =
+  let result = Parser.make () |> Parser.parse "(1 * (2 + 3));" in
+  let expected =
+    Program
+      [
+        Expression_Statement
+          (Binary
+             ( Literal (Numeric 1),
+               Asterisk,
+               Binary (Literal (Numeric 2), Plus, Literal (Numeric 3)) ));
+      ]
+  in
+  assert (result = expected)
+
 (* Run it *)
 let () =
   let open Alcotest in
@@ -223,5 +253,13 @@ let () =
             binary_expression_with_asterisk;
           test_case "Test parser on binary expression with asterisk and plus"
             `Quick binary_expression_with_asterisk_and_plus;
+          test_case "Test parser on parenthesis expression" `Quick
+            parenthesis_expression;
+          test_case
+            "Test parser on parenthesis expression with binary expression"
+            `Quick parenthesis_expression_with_binary_expression;
+          test_case
+            "Test parser on parenthesis expression with parenthesis expression"
+            `Quick parenthesis_expression_with_parenthesis_expression;
         ] );
     ]

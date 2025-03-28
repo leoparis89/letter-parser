@@ -5,10 +5,6 @@ type expression =
   | Literal of literal
   | Binary of expression * binary_operator * expression
 
-let get_numeric_literal = function
-  | Literal (Numeric literal) -> literal
-  | _ -> failwith "Not a literal"
-
 type statement =
   | Expression_Statement of expression
   | Block_Statement of statement list
@@ -64,45 +60,61 @@ let token_to_operator : Tokenizer.token -> binary_operator option = function
   | Asterisk -> Some Asterisk
   | _ -> None
 
-let multiplicative_expression parser =
-  let left = ref (Literal (literal parser)) in
-  while
-    match parser.lookahead with
-    | Some { token = Asterisk; _ } -> true
-    | _ -> false
-  do
-    match parser.lookahead with
-    | Some { token; _ } -> (
-        match token_to_operator token with
-        | Some operator ->
-            let _ = parser |> eat token in
-            let right = Literal (literal parser) in
-            left := Binary (!left, operator, right)
-        | None -> ())
-    | None -> ()
-  done;
-  !left
+let rec expression parser =
+  let parenthesis_expression parser =
+    let _ = parser |> eat Parenthesis_open in
+    let expression = expression parser in
+    let _ = parser |> eat Parenthesis_close in
+    expression
+  in
 
-let binary_expression parser =
-  let left = ref (multiplicative_expression parser) in
-  while
+  let primary_expression parser =
     match parser.lookahead with
-    | Some { token = Plus | Minus; _ } -> true
-    | _ -> false
-  do
-    match parser.lookahead with
-    | Some { token; _ } -> (
-        match token_to_operator token with
-        | Some operator ->
-            let _ = parser |> eat token in
-            let right = multiplicative_expression parser in
-            left := Binary (!left, operator, right)
-        | None -> ())
-    | None -> ()
-  done;
-  !left
+    | Some { token = Parenthesis_open; _ } -> parenthesis_expression parser
+    | _ -> Literal (literal parser)
+  in
 
-let expression = binary_expression
+  let multiplicative_expression parser =
+    let left = ref (primary_expression parser) in
+    while
+      match parser.lookahead with
+      | Some { token = Asterisk; _ } -> true
+      | _ -> false
+    do
+      match parser.lookahead with
+      | Some { token; _ } -> (
+          match token_to_operator token with
+          | Some operator ->
+              let _ = parser |> eat token in
+              let right = primary_expression parser in
+              left := Binary (!left, operator, right)
+          | None -> ())
+      | None -> ()
+    done;
+    !left
+  in
+
+  let binary_expression parser =
+    let left = ref (multiplicative_expression parser) in
+    while
+      match parser.lookahead with
+      | Some { token = Plus | Minus; _ } -> true
+      | _ -> false
+    do
+      match parser.lookahead with
+      | Some { token; _ } -> (
+          match token_to_operator token with
+          | Some operator ->
+              let _ = parser |> eat token in
+              let right = multiplicative_expression parser in
+              left := Binary (!left, operator, right)
+          | None -> ())
+      | None -> ()
+    done;
+    !left
+  in
+
+  binary_expression parser
 
 let expression_statement parser =
   let expression = expression parser in
@@ -125,7 +137,8 @@ let rec statement_list ~(stop_lookahead : Tokenizer.token option) parser =
   let statement parser =
     match parser.lookahead with
     | Some { token = Curly_open; _ } -> block_statement parser
-    | Some { token = Numeric | String; _ } -> expression_statement parser
+    | Some { token = Numeric | String | Parenthesis_open; _ } ->
+        expression_statement parser
     | Some { token; _ } ->
         failwith
           (Printf.sprintf
