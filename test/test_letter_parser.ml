@@ -3,6 +3,11 @@
 open Letter_parser
 open Parser
 
+let empty_program () =
+  let result = Parser.make () |> Parser.parse "" in
+  let expected = Program [] in
+  assert (result = expected)
+
 let parse_number () =
   let result = Parser.make () |> Parser.parse " 42;   " in
   let expected = Program [ Expression_Statement (Literal (Numeric 42)) ] in
@@ -193,8 +198,9 @@ let () =
   let open Alcotest in
   run "Letter parser"
     [
-      ( "string-case",
+      ( "parsser cases",
         [
+          test_case "Test parser on empty program" `Quick empty_program;
           test_case "Test parser on number" `Quick parse_number;
           test_case "Test parser on string" `Quick parse_string;
           test_case "Test parser on unexpected token" `Quick unexpected_token;
