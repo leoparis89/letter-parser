@@ -163,6 +163,31 @@ let binary_expression_with_multiple_operators () =
   in
   assert (result = expected)
 
+let binary_expression_with_asterisk () =
+  let result = Parser.make () |> Parser.parse "1 * 2;" in
+  let expected =
+    Program
+      [
+        Expression_Statement
+          (Binary (Literal (Numeric 1), Asterisk, Literal (Numeric 2)));
+      ]
+  in
+  assert (result = expected)
+
+let binary_expression_with_asterisk_and_plus () =
+  let result = Parser.make () |> Parser.parse "1 + 2 * 3;" in
+  let expected =
+    Program
+      [
+        Expression_Statement
+          (Binary
+             ( Literal (Numeric 1),
+               Plus,
+               Binary (Literal (Numeric 2), Asterisk, Literal (Numeric 3)) ));
+      ]
+  in
+  assert (result = expected)
+
 (* Run it *)
 let () =
   let open Alcotest in
@@ -188,5 +213,9 @@ let () =
           test_case "Test parser on binary expression" `Quick binary_expression;
           test_case "Test parser on binary expression with multiple operators"
             `Quick binary_expression_with_multiple_operators;
+          test_case "Test parser on binary expression with asterisk" `Quick
+            binary_expression_with_asterisk;
+          test_case "Test parser on binary expression with asterisk and plus"
+            `Quick binary_expression_with_asterisk_and_plus;
         ] );
     ]

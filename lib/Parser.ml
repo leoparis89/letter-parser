@@ -1,4 +1,4 @@
-type binary_operator = Plus | Minus
+type binary_operator = Plus | Minus | Asterisk
 type literal = String of string | Numeric of int
 
 type expression =
@@ -62,10 +62,30 @@ let literal parser =
 let token_to_operator : Tokenizer.token -> binary_operator option = function
   | Plus -> Some Plus
   | Minus -> Some Minus
+  | Asterisk -> Some Asterisk
   | _ -> None
 
-let binary_expression parser =
+let multiplicative_expression parser =
   let left = ref (Literal (literal parser)) in
+  while
+    match parser.lookahead with
+    | Some { token = Asterisk; _ } -> true
+    | _ -> false
+  do
+    match parser.lookahead with
+    | Some { token; _ } -> (
+        match token_to_operator token with
+        | Some operator ->
+            let _ = parser |> eat token in
+            let right = Literal (literal parser) in
+            left := Binary (!left, operator, right)
+        | None -> ())
+    | None -> ()
+  done;
+  !left
+
+let binary_expression parser =
+  let left = ref (multiplicative_expression parser) in
   while
     match parser.lookahead with
     | Some { token = Plus | Minus; _ } -> true
@@ -76,7 +96,7 @@ let binary_expression parser =
         match token_to_operator token with
         | Some operator ->
             let _ = parser |> eat token in
-            let right = Literal (literal parser) in
+            let right = multiplicative_expression parser in
             left := Binary (!left, operator, right)
         | None -> ())
     | None -> ()

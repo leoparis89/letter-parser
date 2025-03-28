@@ -25,12 +25,15 @@ type token =
   | Curly_close
   | Plus
   | Minus
+  | Asterisk
 [@@deriving show]
 
 type spec = { pattern : string; token : token option }
 
 let specs =
   [
+    (* match asterisk *)
+    { pattern = "^\\*"; token = Some Asterisk };
     (* match plus *)
     { pattern = "^\\+"; token = Some Plus };
     (* match minus *)
