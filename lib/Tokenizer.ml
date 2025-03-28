@@ -10,7 +10,6 @@ module Regex = struct
   let match_and_capture pattern str =
     match match_regex pattern str with
     | Some result -> (
-        (* Get the first capture group *)
         match get_capture 0 result with
         | Some captured -> Some captured
         | None -> None)
