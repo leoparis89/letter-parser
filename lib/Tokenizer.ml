@@ -17,16 +17,16 @@ module Regex = struct
 end
 
 type token =
-  | Numeric
-  | String
-  | Semicolon
-  | Curly_open
-  | Curly_close
-  | Plus
-  | Minus
-  | Asterisk
-  | Parenthesis_open
-  | Parenthesis_close
+  [ `Numeric
+  | `String
+  | `Semicolon
+  | `Curly_open
+  | `Curly_close
+  | `Plus
+  | `Minus
+  | `Asterisk
+  | `Parenthesis_open
+  | `Parenthesis_close ]
 [@@deriving show]
 
 type spec = { pattern : string; token : token option }
@@ -34,19 +34,19 @@ type spec = { pattern : string; token : token option }
 let specs =
   [
     (* match asterisk *)
-    { pattern = "^\\*"; token = Some Asterisk };
+    { pattern = "^\\*"; token = Some `Asterisk };
     (* match plus *)
-    { pattern = "^\\+"; token = Some Plus };
+    { pattern = "^\\+"; token = Some `Plus };
     (* match minus *)
-    { pattern = "^\\-"; token = Some Minus };
+    { pattern = "^\\-"; token = Some `Minus };
     (* match parenthesis open *)
-    { pattern = "^\\("; token = Some Parenthesis_open };
+    { pattern = "^\\("; token = Some `Parenthesis_open };
     (* match parenthesis close *)
-    { pattern = "^\\)"; token = Some Parenthesis_close };
+    { pattern = "^\\)"; token = Some `Parenthesis_close };
     (* left curly brace *)
-    { pattern = "^\\{"; token = Some Curly_open };
+    { pattern = "^\\{"; token = Some `Curly_open };
     (* right curly brace *)
-    { pattern = "^\\}"; token = Some Curly_close };
+    { pattern = "^\\}"; token = Some `Curly_close };
     (* match multi line comments *)
     { pattern = "^/\\*[\\s\\S]*?\\*/"; token = None };
     (* skip single line comments *)
@@ -54,11 +54,11 @@ let specs =
     (* skip whitespace *)
     { pattern = "^\\s+"; token = None };
     (* match_semicolon *)
-    { pattern = "^;"; token = Some Semicolon };
+    { pattern = "^;"; token = Some `Semicolon };
     (* match strings *)
-    { pattern = "^\"[^\"]+\""; token = Some String };
+    { pattern = "^\"[^\"]+\""; token = Some `String };
     (* match numbers *)
-    { pattern = "^\\d+"; token = Some Numeric };
+    { pattern = "^\\d+"; token = Some `Numeric };
   ]
 
 type t = { mutable _string : string; mutable cursor : int }
