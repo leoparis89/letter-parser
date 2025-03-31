@@ -53,9 +53,7 @@ let literal parser =
   | `Numeric -> numeric_literal parser
   | token ->
       failwith
-        (Printf.sprintf
-           "Unexpected token type in lookahead. Found %s but expected String \
-            or Numeric"
+        (Printf.sprintf "Literal: unexpected literal production %s"
            (Tokenizer.show_token token))
 
 let token_to_operator : Tokenizer.token -> binary_operator option = function
@@ -143,9 +141,7 @@ let rec statement_list ~(stop_lookahead : Tokenizer.token option) parser =
     | `Numeric | `String | `Parenthesis_open -> expression_statement parser
     | token ->
         failwith
-          (Printf.sprintf
-             "Unexpected token type in lookahead while parsing statement. \
-              Found %s but expected Curly_open, Numeric, or String"
+          (Printf.sprintf "Statement: unexpected statement production %s"
              (Tokenizer.show_token token))
   in
 
