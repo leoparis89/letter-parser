@@ -18,9 +18,16 @@ type t = {
 
 let make () = { lookahead = None; tokenizer = Tokenizer.make "" }
 
-let eat (token : Tokenizer.token) parser =
+let get_lookahead_production parser =
   match parser.lookahead with
-  | Some production ->
+  | Some production -> production
+  | None -> failwith "Unexpected end of input"
+
+let get_lookahead_token parser = (get_lookahead_production parser).token
+
+let eat (token : Tokenizer.token) parser =
+  match parser |> get_lookahead_production with
+  | production ->
       if not (production.token = token) then
         failwith
           (Printf.sprintf
@@ -29,8 +36,6 @@ let eat (token : Tokenizer.token) parser =
              (Tokenizer.show_token token))
       else parser.lookahead <- Tokenizer.get_next_token parser.tokenizer;
       production
-  (* failwith "Unexpected token" *)
-  | None -> failwith "Empty parser"
 
 let numeric_literal parser =
   let token = parser |> eat `Numeric in
@@ -43,11 +48,10 @@ let string_literal parser =
   String (String.sub value 1 (len - 2))
 
 let literal parser =
-  match parser.lookahead with
-  | None -> failwith "Empty parser"
-  | Some { token = `String; _ } -> string_literal parser
-  | Some { token = `Numeric; _ } -> numeric_literal parser
-  | Some { token; _ } ->
+  match parser |> get_lookahead_token with
+  | `String -> string_literal parser
+  | `Numeric -> numeric_literal parser
+  | token ->
       failwith
         (Printf.sprintf
            "Unexpected token type in lookahead. Found %s but expected String \
@@ -123,29 +127,26 @@ let expression_statement parser =
 
 let rec statement_list ~(stop_lookahead : Tokenizer.token option) parser =
   let block_statement parser =
-    let _ = parser |> eat `Curly_open in
+    parser |> eat `Curly_open |> ignore;
     let body =
-      match parser.lookahead with
-      | Some { token = `Curly_close; _ } -> []
-      | Some _ -> statement_list ~stop_lookahead:(Some `Curly_close) parser
-      | None -> failwith "Unexpected empty lookahead"
+      match parser |> get_lookahead_token with
+      | `Curly_close -> []
+      | _ -> statement_list ~stop_lookahead:(Some `Curly_close) parser
     in
-    let _ = parser |> eat `Curly_close in
+    parser |> eat `Curly_close |> ignore;
     Block_Statement body
   in
 
   let statement parser =
-    match parser.lookahead with
-    | Some { token = `Curly_open; _ } -> block_statement parser
-    | Some { token = `Numeric | `String | `Parenthesis_open; _ } ->
-        expression_statement parser
-    | Some { token; _ } ->
+    match parser |> get_lookahead_token with
+    | `Curly_open -> block_statement parser
+    | `Numeric | `String | `Parenthesis_open -> expression_statement parser
+    | token ->
         failwith
           (Printf.sprintf
              "Unexpected token type in lookahead while parsing statement. \
               Found %s but expected Curly_open, Numeric, or String"
              (Tokenizer.show_token token))
-    | None -> failwith "Unexpected empty lookahead"
   in
 
   let rec loop acc =
